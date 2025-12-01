@@ -1,6 +1,8 @@
 name: Build APP
 
 on:
+  # 开启手动触发按钮
+  workflow_dispatch:
   push:
     branches: [ "master", "old-android" ]
   pull_request:
@@ -8,46 +10,27 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+
+      # 构建步骤
       - uses: sparkfabrik/android-build-action@v1.5.0
         with:
           project-path: .
           output-path: app-debug.apk
           fastlane-env: "debug"
           ruby-version: "3.3.0"
+
+      # 修改点：去掉了 if: github.event_name == 'pull_request'
+      # 这样无论你怎么触发，都会把生成的 APK 上传出来
       - uses: actions/upload-artifact@v3
-        if: github.event_name == 'pull_request'
         name: Upload app APK
         with:
-          name: App bundle
+          name: App-Debug-Version
           path: app-debug.apk
-      # https://github.com/r0adkll/sign-android-release/issues/84#issuecomment-1889636075
-      - name: Setup build tool version variable
-        shell: bash
-        run: |
-          BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)
-          echo "BUILD_TOOL_VERSION=$BUILD_TOOL_VERSION" >> $GITHUB_ENV
-          echo Last build tool version is: $BUILD_TOOL_VERSION
-      - uses: r0adkll/sign-android-release@v1
-        if: github.event_name != 'pull_request'
-        name: Sign app APK
-        id: sign_app
-        with:
-          releaseDirectory: .
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
-      - uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request'
-        name: Upload signed app APK
-        with:
-          name: Signed app bundle
-          path: ${{steps.sign_app.outputs.signedReleaseFile}}
+      
+      #以此往下删除了所有关于 Sign (签名) 的步骤，因为 Fork 仓库没有密钥必挂
