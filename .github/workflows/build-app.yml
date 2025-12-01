@@ -1,7 +1,6 @@
 name: Build APP
 
 on:
-  # 开启手动触发按钮
   workflow_dispatch:
   push:
     branches: [ "master", "old-android" ]
@@ -17,7 +16,6 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # 构建步骤
       - uses: sparkfabrik/android-build-action@v1.5.0
         with:
           project-path: .
@@ -25,12 +23,9 @@ jobs:
           fastlane-env: "debug"
           ruby-version: "3.3.0"
 
-      # 修改点：去掉了 if: github.event_name == 'pull_request'
-      # 这样无论你怎么触发，都会把生成的 APK 上传出来
-      - uses: actions/upload-artifact@v3
+      # 修复点：将 v3 改为 v4
+      - uses: actions/upload-artifact@v4  
         name: Upload app APK
         with:
           name: App-Debug-Version
           path: app-debug.apk
-      
-      #以此往下删除了所有关于 Sign (签名) 的步骤，因为 Fork 仓库没有密钥必挂
